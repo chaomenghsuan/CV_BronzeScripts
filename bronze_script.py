@@ -198,7 +198,7 @@ at_win_size = 5
 at_alpha = 5
 cb_alpha1 = 0.5
 sauvola_win_size = 75
-cb_alpha2 = 0.3
+cb_alpha2 = 0.8
 
 data_dn = denoise(dataset, denoised_n_round, gamma, median_win_size, at_win_size, at_alpha, cb_alpha1, sauvola_win_size, cb_alpha2)
 
@@ -219,7 +219,7 @@ def output(dataset, outDir, outname):
 		io.imsave(out_fullpath, dataset[i])
 
 output(data_dn, outDir, 'denoised')
-print('finished denoising, find result %s' % outDir)
+print('finished denoising, find result:  %s' % outDir)
 
 #######################
 ####### feature #######
@@ -664,6 +664,7 @@ for i in range(len(data_dn)):
 for i in range(len(feat)):
     feat[i] = list(itertools.chain.from_iterable(feat[i]))
 feat = np.array(feat)
+feat = feat - np.amin(feat)
 print(feat.shape)
 
 # labels
@@ -680,12 +681,16 @@ y_train = [label[i] for i in range(len(label)) if i%5 != 0]
 
 clf_dummy = DummyClassifier(strategy='most_frequent', random_state=0)
 clf_dummy.fit(X_train, y_train)
+print('='*10)
 print('Base line - dummy classifier score:', clf_dummy.score(X_test, y_test))
+print('='*10)
 
 #######################
 ######   SVM1   #######
 #######################
+print('='*10)
 print('linear SVM with all %s features' % feat.shape[1])
+print('='*10)
 
 clf = LinearSVC()
 clf.fit(X_train, y_train)
@@ -707,13 +712,18 @@ print(matrix1)
 #######################
 ## feature reduction ##
 #######################
+print('='*10)
 print('SelectKBest feature reduction')
+print('='*10)
 
-fit = SelectKBest(chi2, k=41).fit(feat, label)
+fit = SelectKBest(chi2, k=31).fit(feat, label)
 feat_new = fit.transform(feat)
+#scores = sorted(fit.scores_[~np.isnan(fit.scores_)], reverse=True)
 print('='*10)
 print('model improving')
 print('number of features reduced to:', feat_new.shape[1])
+#plt.plot(range(50), scores[:50])
+#plt.show()
 
 X_test_new = feat_new[::5]
 X_train_new = [feat_new[i].astype(float) for i in range(len(feat_new)) if i%5 != 0]
@@ -736,7 +746,9 @@ print(matrix2)
 #######################
 ########  PCA  ########
 #######################
+print('='*10)
 print('PCA feature reduction')
+print('='*10)
 
 pca = PCA(n_components=2)
 pca_feat = pca.fit_transform(feat)
@@ -752,17 +764,19 @@ matrix3 = pd.DataFrame(confusion_matrix(y_test, pred_pca),
 precision3 = precision_score(y_test, pred_pca, average='macro')
 recall3 = recall_score(y_test, pred_pca, average='macro')
 f1_3 = f1_score(y_test, pred_pca, average='macro')
-score3 = clf_pca.score(X_test_pca, y_test)
+#score3 = clf_pca.score(X_test_pca, y_test)
 
 print('='*10)
 print('precision: {0:.3f}\nrecall: {0:.3f}\nf1 score: {0:.3f}'.format(precision3, recall3, f1_3))
-print('classifier score: {0:.3f}'.format(score3))
+#print('classifier score: {0:.3f}'.format(score3))
 print(matrix3)
 
 #######################
 #### Leave-one-out ####
 #######################
+print('='*10)
 print('running leave-one-out evaluation')
+print('='*10)
 
 loo = LeaveOneOut()
 acc = []
